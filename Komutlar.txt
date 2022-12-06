@@ -1,0 +1,127 @@
+1. dockerfile oluşturduk.  web server için
+
+içerik ---
+
+FROM python:alpine
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . /app
+WORKDIR /app
+EXPOSE 80
+CMD python ./app.py
+
+2. docker file ı yeni conteiner yaptık.
+
+--- docker build -t dogruaziz/webserver .
+
+3. sonra aynısını image server için yaptık.
+
+içerik ---
+
+FROM python:alpine
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . /app
+WORKDIR /app
+EXPOSE 80
+CMD python ./app.py
+
+--- --- docker build -t dogruaziz/imageserver .
+
+4. k8s klasörünü oluşturduk. şemalama yaptık. tüm klasörleri oluşturduk. 
+
+5. Mysql deploy ve service oluşturduk. 
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: mysql-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-db
+  template:
+    metadata:
+      labels:
+        app: mysql-db #######BURASI İLE 
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        ports:
+        - containerPort: 3306
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: "C123c"
+          - name: MYSQL_DATABASE
+            value: "phonebook"
+          - name: MYSQL_USER
+            value: "clarus"
+          - name: MYSQL_PASSWORD
+            value: "sifre123"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql-db #### BURASI AYNI OLMALI
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+
+
+6. Webserver-deploy oluşturduk. 
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: webserver-deploy
+  name: webserver-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver-deploy
+  template:
+    metadata:
+      labels:
+        app: webserver-deploy
+    spec:
+      containers:
+      - image: dogruaziz/webserver
+        name: webserver
+        ports:
+          - containerPort: 80
+        env:
+          - name: MYSQL_DATABASE_HOST ####bu bilgiler cridential olarak yer alıyor. DB ye girebilmek için. 
+            value: mysql-service
+          - name: MYSQL_DATABASE
+            value: "phonebook"
+          - name: MYSQL_USER
+            value: "clarus"
+          - name: MYSQL_PASSWORD
+            value: "sifre123" 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
